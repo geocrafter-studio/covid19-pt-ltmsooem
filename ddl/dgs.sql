@@ -15,19 +15,28 @@ AS SELECT row_number() over(order by b.date) as id,
     b.objectid,
     a.concelho,
     b.cases,
+    b.cases - (lag(b.cases, 1) over (
+   				PARTITION BY a.concelho
+   				ORDER BY a.concelho, b."date")) as cases_progress,
     b.date,
     a.geom
    FROM geo.pt_mun a
-     JOIN dgs.daily_mun b ON a.objectid = b.objectid;
+     JOIN dgs.daily_mun b ON a.objectid = b.objectid
+   ORDER BY 3,6;
 
 CREATE OR REPLACE VIEW dgs.v_daily_mun_last
 AS SELECT b.objectid,
    a.concelho,
    b.cases,
+   z.cases_progress,
    a.geom
   FROM geo.pt_mun a
     JOIN dgs.daily_mun b ON a.objectid = b.objectid
-  where b.date > now() - interval '1d';
+    join lateral (
+    	select vdm."date", vdm.cases_progress from dgs.v_daily_mun vdm where vdm.concelho = a.concelho
+    ) z on b."date" = z."date"
+  where b.date > now() - interval '1d'
+  order by 2;
 
 -- regional MV placeholder
 CREATE MATERIALIZED VIEW dgs.region_stats AS
