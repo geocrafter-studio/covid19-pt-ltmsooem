@@ -32,12 +32,12 @@ AS SELECT b.objectid,
 CREATE MATERIALIZED VIEW dgs.region_stats AS
   SELECT b.objectid,
     a.datarel,
-    a.dist_casosconf AS confirmed,
-    a.dist_obitos AS deaths,
-    a.dist_recuperados AS recovered
+    min(a.dist_casosconf) AS confirmed,
+    min(a.dist_obitos) AS deaths,
+    min(a.dist_recuperados) AS recovered
    FROM esri.casos_regiao a
-     JOIN geo.pt_regioes b ON st_intersects(st_buffer(st_transform(a.geom, 3763), 10000::double precision), st_makevalid(b.geom))
-  WHERE a.datarel IS NOT NULL;
+     JOIN geo.pt_regions b ON st_intersects(st_buffer(st_transform(a.geom, 3763), 10000::double precision), st_makevalid(b.geom))
+  group by b.objectid, a.datarel;
 
 CREATE OR REPLACE VIEW dgs.v_daily_regions
 AS SELECT b.name,
@@ -47,7 +47,7 @@ AS SELECT b.name,
     a.recovered,
     b.geom
    FROM dgs.region_stats a
-     JOIN geo.pt_regioes b ON a.objectid = b.objectid;
+     JOIN geo.pt_regions b ON a.objectid = b.objectid;
 
 CREATE OR REPLACE VIEW dgs.v_daily_regions_agg
 AS SELECT b.name,
@@ -56,5 +56,5 @@ AS SELECT b.name,
    sum(a.recovered) AS recovered,
    b.geom
   FROM dgs.region_stats a
-    JOIN geo.pt_regioes b ON a.objectid = b.objectid
+    JOIN geo.pt_regions b ON a.objectid = b.objectid
  GROUP BY b.name, b.geom;
