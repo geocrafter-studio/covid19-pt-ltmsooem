@@ -4,14 +4,15 @@ CREATE SCHEMA dgs;
 CREATE TABLE dgs.daily_mun (
 	id serial NOT NULL,
 	objectid int4 NOT NULL,
-	cases int4 NULL,
+	cases int4 NOT NULL DEFAULT 0,
 	"date" timestamp NOT NULL,
 	CONSTRAINT pk_daily_mun PRIMARY KEY (id)
 );
 
 -- municipal views
 CREATE OR REPLACE VIEW dgs.v_daily_mun
-AS SELECT b.objectid,
+AS SELECT row_number() over(order by b.date) as id,
+    b.objectid,
     a.concelho,
     b.cases,
     b.date,
@@ -19,14 +20,14 @@ AS SELECT b.objectid,
    FROM geo.pt_mun a
      JOIN dgs.daily_mun b ON a.objectid = b.objectid;
 
-CREATE OR REPLACE VIEW dgs.v_daily_mun_agg
+CREATE OR REPLACE VIEW dgs.v_daily_mun_last
 AS SELECT b.objectid,
    a.concelho,
-   sum(b.cases) AS total_cases,
+   b.cases,
    a.geom
   FROM geo.pt_mun a
     JOIN dgs.daily_mun b ON a.objectid = b.objectid
- GROUP BY b.objectid, a.concelho, a.geom;
+  where b.date > now() - interval '1d';
 
 -- regional MV placeholder
 CREATE MATERIALIZED VIEW dgs.region_stats AS
@@ -40,7 +41,8 @@ CREATE MATERIALIZED VIEW dgs.region_stats AS
   group by b.objectid, a.datarel;
 
 CREATE OR REPLACE VIEW dgs.v_daily_regions
-AS SELECT b.name,
+AS SELECT row_number() over(order by a.datarel) as id,
+    b.name,
     a.datarel,
     a.confirmed,
     a.deaths,
@@ -49,12 +51,12 @@ AS SELECT b.name,
    FROM dgs.region_stats a
      JOIN geo.pt_regions b ON a.objectid = b.objectid;
 
-CREATE OR REPLACE VIEW dgs.v_daily_regions_agg
+CREATE OR REPLACE VIEW dgs.v_daily_regions_last
 AS SELECT b.name,
-   sum(a.confirmed) AS confirmed,
-   sum(a.deaths) AS deaths,
-   sum(a.recovered) AS recovered,
+   a.confirmed,
+   a.deaths,
+   a.recovered,
    b.geom
   FROM dgs.region_stats a
     JOIN geo.pt_regions b ON a.objectid = b.objectid
- GROUP BY b.name, b.geom;
+  where a.datarel > now() - interval '1d';
