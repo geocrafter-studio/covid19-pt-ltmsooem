@@ -29,6 +29,12 @@ as select b.objectid,
    a.concelho,
    b.cases,
    z.cases_progress,
+   case
+	   when b.cases != 0 and z.cases_progress != 0 then
+		   round(z.cases_progress*100/b.cases::decimal, 1)
+   	   else
+	   	   null
+   end as cases_progress_perc,
    a.geom
   from geo.pt_mun a
     join dgs.daily_mun b on a.objectid = b.objectid
@@ -68,10 +74,28 @@ create or replace view dgs.v_daily_regions_last
 as select b.name,
   a.confirmed,
   a.confirmed_progress,
+  case
+	   when a.confirmed != 0 and a.confirmed_progress != 0 then
+		   round(a.confirmed_progress*100/a.confirmed::decimal, 1)
+     else
+	 	   null
+  end as confirmed_progress_perc,
   a.deaths,
   a.deaths_progress,
+  case
+	   when a.deaths != 0 and a.deaths_progress != 0 then
+		   round(a.deaths_progress*100/a.deaths::decimal, 1)
+     else
+	 	   null
+  end as deaths_progress_perc,
   a.recovered,
   a.recovered_progress,
+  case
+	   when a.recovered != 0 and a.recovered_progress != 0 then
+		   round(a.recovered_progress*100/a.recovered::decimal, 1)
+   	 else
+	   	 null
+  end as recovered_progress_perc,
   b.geom
  from dgs.v_daily_regions a
    join geo.pt_regions b on a."name" like b."name"
