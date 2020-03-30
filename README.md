@@ -22,3 +22,10 @@ This is our tentative to curate Portuguese COVID19 datasets provided by Portugue
 * Regional level
   * `dgs.v_daily_regions` contains all daily active cases per region area
   * `dgs.v_daily_regions_last` same as above but filtered for previous day
+
+### How to update my local dataset?
+* Regional level
+  * Grab the file(s) `PT_regions_<date>.csv` and ingest it directly on table `esri.casos_regiao` mapping only the needed columns (`objectid`, `datarel`, `dist_casosconf`, `dist_obitos`, `dist_recuperados`)
+  * Refresh the materialized view `dgs.region_stats`
+* Municipal level
+  * Grab the file(s) `PT_mun_<date>.csv` and ingest it directly on table `dgs.daily_mun` mapping only the available columns (`objectid`, `cases`). Update date field on table `dgs.daily_mun` using an update statement (`update dgs.daily_mun set date = '<new-date-here> 00:00:00' where date is null;`)
