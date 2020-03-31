@@ -24,25 +24,23 @@ as select row_number() over(order by b.date) as id,
      join dgs.daily_mun b on a.objectid = b.objectid
    order by 3,6;
 
-create materialized view dgs.mv_daily_mun_last
+create or replace view dgs.v_daily_mun_last
 as select b.objectid,
-   a.concelho,
-   b.cases,
-   z.cases_progress,
-   case
-	   when b.cases != 0 and z.cases_progress != 0 then
-		   round(z.cases_progress*100/b.cases::decimal, 1)
-   	   else
+ a.concelho,
+ b.cases,
+ b.cases_progress,
+ case
+	   when b.cases != 0 and b.cases_progress != 0 then
+		   round(b.cases_progress*100/b.cases::decimal, 1)
+ 	   else
 	   	   null
-   end as cases_progress_perc,
-   a.geom
-  from geo.pt_mun a
-    join dgs.daily_mun b on a.objectid = b.objectid
-    join lateral (
-    	select vdm."date", vdm.cases_progress from dgs.v_daily_mun vdm where vdm.concelho = a.concelho
-    ) z on b."date" = z."date"
-  where b.date > now() - interval '1d'
-  order by 2;
+ end as cases_progress_perc,
+ a.geom
+from geo.pt_mun a
+  join dgs.v_daily_mun b on a.objectid = b.objectid
+where b.date > now() - interval '1d'
+order by 2;
+
 
 -- regional mv placeholder
 create materialized view dgs.region_stats as
