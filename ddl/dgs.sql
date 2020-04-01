@@ -38,7 +38,7 @@ as select b.objectid,
  a.geom
 from geo.pt_mun a
   join dgs.v_daily_mun b on a.objectid = b.objectid
-where b.date > now() - interval '1d'
+where b.date > now() - interval '40 hour'
 order by 2;
 
 
@@ -97,4 +97,4 @@ as select b.name,
   b.geom
  from dgs.v_daily_regions a
    join geo.pt_regions b on a."name" like b."name"
- where a.datarel > now() - interval '1d';
+ where a.datarel > now() - interval '40 hour';
