@@ -3,8 +3,10 @@ create schema dgs;
 -- daily municipal data placeholder
 create table dgs.daily_mun (
 	id serial not null,
-	objectid int4 not null,
+	dico varchar(4) not null,
 	cases int4 not null default 0,
+	recovered int4 not null default 0,
+	deaths int4 not null default 0,
 	"date" timestamp not null,
 	constraint pk_daily_mun primary key (id)
 );
@@ -12,20 +14,28 @@ create table dgs.daily_mun (
 -- municipal views
 create or replace view dgs.v_daily_mun
 as select row_number() over(order by b.date) as id,
-    b.objectid,
+    b.dico,
     a.concelho,
     b.cases,
     b.cases - (lag(b.cases, 1) over (
    				partition by a.concelho
    				order by a.concelho, b."date")) as cases_progress,
+		b.recovered,
+    b.recovered - lag(b.recovered, 1) over (
+					partition by a.concelho
+					order by a.concelho, b."date") as recovered_progress,
+    b.deaths,
+    b.deaths - lag(b.deaths, 1) over (
+					partition by a.concelho
+					order by a.concelho, b."date") as deaths_progress,
     b.date,
     a.geom
    from geo.pt_mun a
-     join dgs.daily_mun b on a.objectid = b.objectid
-   order by 3,6;
+     join dgs.daily_mun b on a.dico = b.dico
+   order by 3,10;
 
 create or replace view dgs.v_daily_mun_last
-as select b.objectid,
+as select b.dico,
  a.concelho,
  b.cases,
  b.cases_progress,
@@ -35,9 +45,25 @@ as select b.objectid,
  	   else
 	   	   null
  end as cases_progress_perc,
+ b.recovered,
+ b.recovered_progress,
+ case
+	   when b.recovered != 0 and b.recovered_progress != 0 then
+		   round(b.recovered_progress*100/b.recovered::decimal, 1)
+ 	   else
+	   	   null
+ end as recovered_progress_perc,
+ b.deaths,
+ b.deaths_progress,
+ case
+	   when b.deaths != 0 and b.deaths_progress != 0 then
+		   round(b.deaths_progress*100/b.deaths::decimal, 1)
+ 	   else
+	   	   null
+ end as deaths_progress_perc,
  a.geom
 from geo.pt_mun a
-  join dgs.v_daily_mun b on a.objectid = b.objectid
+  join dgs.daily_mun b on a.dico = b.dico
 where b.date > now() - interval '40 hour'
 order by 2;
 
